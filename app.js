@@ -41,16 +41,20 @@ module.exports = app => {
 
   class EtplView {
 
-    async render(name, context) {
+    async render(name, data) {
+      return await this.renderView(name, data)
+    }
+
+    async renderView(name, data) {
       const content = await fs.readFile(name, 'utf8')
       if (!cache[ name ]) {
         cache[ name ] = engineInstance.compile(content)
       }
-      return cache[ name ](context)
+      return cache[ name ](data)
     }
 
-    async renderString(tpl, context) {
-      return engineInstance.compile(tpl)(context)
+    async renderString(tpl, data) {
+      return engineInstance.compile(tpl)(data)
     }
 
   }
