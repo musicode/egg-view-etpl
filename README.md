@@ -34,7 +34,7 @@ $ npm i egg-view-etpl --save
 
 ```js
 // {app_root}/config/plugin.js
-exports.viewEtpl = {
+exports.etpl = {
   enable: true,
   package: 'egg-view-etpl',
 };
@@ -44,7 +44,7 @@ exports.viewEtpl = {
 
 ```js
 // {app_root}/config/config.default.js
-exports.viewEtpl = {
+exports.etpl = {
 };
 ```
 
