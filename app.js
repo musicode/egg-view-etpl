@@ -2,7 +2,7 @@
 
 const path = require('path')
 const fs = require('mz/fs')
-const etpl = require('./lib/etpl')
+const etpl = require('./etpl')
 
 module.exports = app => {
 
