@@ -2,7 +2,7 @@
 
 var path = require('path')
 const fs = require('mz/fs')
-const etpl = require('./lib/etpl')
+const etpl = require(path.join(__dirname, 'lib/etpl'))
 
 module.exports = app => {
 
