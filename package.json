@@ -1,6 +1,6 @@
 {
   "name": "egg-view-etpl",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "etpl for eggjs",
   "eggPlugin": {
     "name": "etpl"
@@ -40,6 +40,7 @@
   "files": [
     "app.js",
     "agent.js",
+    "lib",
     "config"
   ],
   "ci": {
