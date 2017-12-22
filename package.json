@@ -1,6 +1,6 @@
 {
   "name": "egg-view-etpl",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "etpl for eggjs",
   "eggPlugin": {
     "name": "etpl"
