@@ -1,7 +1,8 @@
 'use strict'
 
+var path = require('path')
 const fs = require('mz/fs')
-const etpl = require('etpl')
+const etpl = require('./lib/etpl')
 
 module.exports = app => {
 
@@ -16,25 +17,39 @@ module.exports = app => {
 
   }
 
-  let engine
-  let filters
+  const config = app.config.etpl
+  const engine = config && config.engine
+  const filterDir = config && config.filterDir
+  const targetDir = config && config.targetDir
 
-  if (app.config.etpl) {
-    engine = app.config.etpl.engine
-    filters = app.config.etpl.filters
-    if (engine) {
-      Object.assign(engineConfig, engine)
-    }
+  if (engine) {
+    Object.assign(engineConfig, engine)
   }
-
-  // 根据配置实例化
   const engineInstance = new etpl.Engine(engineConfig)
 
-  // 添加过滤函数
-  if (filters) {
-    for (let name in filters) {
-      engineInstance.addFilter(name, filters[ name ])
-    }
+  if (filterDir) {
+    fs.readdirSync(filterDir).forEach(
+      fileName => {
+        if (fileName !== '.' && fileName !== '..') {
+          engineInstance.addFilter(
+            path.basename(fileName, '.js'),
+            require(path.join(filterDir, fileName))
+          )
+        }
+      }
+    )
+  }
+
+  if (targetDir) {
+    fs.readdirSync(targetDir).forEach(
+      fileName => {
+        if (fileName !== '.' && fileName !== '..') {
+          engineInstance.compile(
+            fs.readFileSync(path.join(targetDir, fileName), 'utf8')
+          )
+        }
+      }
+    )
   }
 
   const cache = { }
