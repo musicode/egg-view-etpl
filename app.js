@@ -61,11 +61,16 @@ module.exports = app => {
     }
 
     async renderView(name, data) {
-      const content = await fs.readFile(name, 'utf8')
-      if (!cache[ name ]) {
-        cache[ name ] = engineInstance.compile(content)
+      const { mtimeMs } = await fs.stat(name)
+      const result = cache[ name ]
+      if (!result || mtimeMs > result.mtimeMs) {
+        const content = await fs.readFile(name, 'utf8')
+        cache[ name ] = {
+          render: engineInstance.compile(content),
+          mtimeMs: mtimeMs
+        }
       }
-      return cache[ name ](data)
+      return cache[ name ].render(data)
     }
 
     async renderString(tpl, data) {
