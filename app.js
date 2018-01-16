@@ -11,9 +11,7 @@ module.exports = app => {
     // 清除命令标签前后的空白字符
     strip: true,
 
-    // target 或 master 名字冲突时的处理策略
-    // 冲突必须报错，否则出了问题太难搞
-    namingConflict: 'error',
+    namingConflict: 'override',
 
   }
 
