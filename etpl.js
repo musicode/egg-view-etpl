@@ -180,7 +180,10 @@
          * @return {string} 替换结果串
          */
         html: function (source) {
-            return source.replace(/[&<>"']/g, htmlFilterReplacer);
+            if (typeof source === 'string') {
+                return source.replace(/[&<>"']/g, htmlFilterReplacer);
+            }
+            return source
         },
 
         /**
