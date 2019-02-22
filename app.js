@@ -1,7 +1,7 @@
 'use strict'
 
+const fs = require('fs')
 const path = require('path')
-const fs = require('mz/fs')
 const etpl = require('./etpl')
 
 module.exports = app => {
@@ -58,17 +58,44 @@ module.exports = app => {
       return await this.renderView(name, data)
     }
 
-    async renderView(name, data) {
-      const { mtimeMs } = await fs.stat(name)
-      const result = cache[ name ]
-      if (!result || mtimeMs > result.mtimeMs) {
-        const content = await fs.readFile(name, 'utf8')
-        cache[ name ] = {
-          render: engineInstance.compile(content),
-          mtimeMs: mtimeMs
-        }
-      }
-      return cache[ name ].render(data)
+    renderView(name, data) {
+      return new Promise(resolve => {
+
+        fs.stat(name, (err, stat) => {
+
+          if (err) {
+            return
+          }
+
+          const { mtimeMs } = stat
+          const result = cache[ name ]
+          if (!result || mtimeMs > result.mtimeMs) {
+            fs.readFile(name, 'utf8', (err, content) => {
+
+              if (err) {
+                return
+              }
+
+              cache[ name ] = {
+                render: engineInstance.compile(content),
+                mtimeMs: mtimeMs
+              }
+
+              resolve(
+                cache[ name ].render(data)
+              )
+
+            })
+          }
+          else {
+            resolve(
+              cache[ name ].render(data)
+            )
+          }
+
+        })
+
+      })
     }
 
     async renderString(tpl, data) {
