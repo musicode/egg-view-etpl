@@ -1,6 +1,6 @@
 'use strict'
 
-const fs = require('fs')
+const fs = require('fs/promises')
 const path = require('path')
 const etpl = require('./etpl')
 
@@ -25,32 +25,67 @@ module.exports = app => {
   }
   const engineInstance = new etpl.Engine(engineConfig)
 
-  if (filterDir) {
-    fs.readdirSync(filterDir).forEach(
-      fileName => {
-        if (fileName !== '.' && fileName !== '..') {
-          engineInstance.addFilter(
-            path.basename(fileName, '.js'),
-            require(path.join(filterDir, fileName))
-          )
-        }
-      }
-    )
+  const viewCache = { }
+  let filterDirMtime = 0
+  let targetDirMtime = 0
+
+  const readMtime = async function (file) {
+    const { mtimeMs } = await fs.stat(file)
+    return mtimeMs
   }
 
-  if (targetDir) {
-    fs.readdirSync(targetDir).forEach(
-      fileName => {
-        if (fileName !== '.' && fileName !== '..') {
-          engineInstance.compile(
-            fs.readFileSync(path.join(targetDir, fileName), 'utf8')
-          )
-        }
-      }
-    )
+  const readFilterDir = async function () {
+    if (!filterDir) {
+      return
+    }
+    const mtimeMs = await readMtime(filterDir)
+    if (mtimeMs === filterDirMtime) {
+      return
+    }
+
+    let files = await fs.readdir(filterDir)
+
+    files
+    .filter(function (fileName) {
+      return fileName !== '.' && fileName !== '..'
+    })
+    .forEach(function (fileName) {
+      engineInstance.addFilter(
+        path.basename(fileName, '.js'),
+        require(path.join(filterDir, fileName))
+      )
+    })
+
+    filterDirMtime = mtimeMs
+
   }
 
-  const cache = { }
+  const readTargetDir = async function () {
+    if (!targetDir) {
+      return
+    }
+    const mtimeMs = await readMtime(targetDir)
+    if (mtimeMs === targetDirMtime) {
+      return
+    }
+
+    let files = await fs.readdir(targetDir)
+
+    files = files.filter(function (fileName) {
+      return fileName !== '.' && fileName !== '..'
+    })
+
+    for (let i = 0, len = files.length; i < len; i++) {
+      const content = await fs.readFile(
+        path.join(targetDir, files[i]),
+        'utf8'
+      )
+      engineInstance.compile(content)
+    }
+
+    targetDirMtime = mtimeMs
+
+  }
 
   class EtplView {
 
@@ -58,48 +93,33 @@ module.exports = app => {
       return await this.renderView(name, data)
     }
 
-    renderView(name, data) {
-      return new Promise(resolve => {
+    async renderView(name, data) {
 
-        fs.stat(name, (err, stat) => {
+      await readFilterDir()
+      await readTargetDir()
 
-          if (err) {
-            return
-          }
+      const mtimeMs = await readMtime(name)
 
-          const { mtimeMs } = stat
-          const result = cache[ name ]
-          if (!result || mtimeMs > result.mtimeMs) {
-            fs.readFile(name, 'utf8', (err, content) => {
+      const result = viewCache[ name ]
+      if (!result || mtimeMs !== result.mtimeMs) {
+        const content = await fs.readFile(name, 'utf8')
+        viewCache[ name ] = {
+          render: engineInstance.compile(content),
+          mtimeMs: mtimeMs
+        }
+      }
 
-              if (err) {
-                return
-              }
+      return viewCache[ name ].render(data)
 
-              cache[ name ] = {
-                render: engineInstance.compile(content),
-                mtimeMs: mtimeMs
-              }
-
-              resolve(
-                cache[ name ].render(data)
-              )
-
-            })
-          }
-          else {
-            resolve(
-              cache[ name ].render(data)
-            )
-          }
-
-        })
-
-      })
     }
 
     async renderString(tpl, data) {
+
+      await readFilterDir()
+      await readTargetDir()
+
       return engineInstance.compile(tpl)(data)
+
     }
 
   }
